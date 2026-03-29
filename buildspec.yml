@@ -1,0 +1,24 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo Installing dependencies
+      - cd backend && npm install && cd ..
+      - cd frontend && npm install && cd ..
+
+  build:
+    commands:
+      - echo Building React app
+      - cd frontend && npm run build && cd ..
+
+  post_build:
+    commands:
+      - echo Setting up SSH key
+      - mkdir -p ~/.ssh
+      - echo "$SSH_KEY" > ~/.ssh/codebuild_key
+      - chmod 600 ~/.ssh/codebuild_key
+      - echo Deploying to EC2
+      - ssh -i ~/.ssh/codebuild_key -o StrictHostKeyChecking=no ec2-user@3.237.100.37 "cd ~/bookshop-aws && git pull && cd backend && npm install && pm2 restart bookshop-backend"
+      - echo Copying frontend build to EC2
+      - scp -i ~/.ssh/codebuild_key -o StrictHostKeyChecking=no -r frontend/build/* ec2-user@3.237.100.37:/var/www/html/
